@@ -51,8 +51,6 @@ async def health():
 
 @app.post("/analyze")
 @app.post("/api/analyze")
-@app.post("/analyze")
-@app.post("/api/analyze")
 async def analyze_message(
     request_body: AnalyzeRequest,
     x_api_key: str = Header(None, alias="x-api-key")
@@ -81,7 +79,8 @@ async def analyze_message(
             for m in conversation_history_objs
         ]
         
-        logger.info(f"Processing message for session {session_id}: {message_text[:100]}...")
+        # DEBUG: Log raw request details
+        logger.info(f"Processing message for session {session_id}")
         
         # Get or create session
         session = session_manager.get_or_create_session(session_id)
@@ -90,20 +89,35 @@ async def analyze_message(
         scam_detected, keywords = detect_scam(message_text, conversation_history)
         scam_type = get_scam_type(keywords) if scam_detected else None
         
-        # Extract intelligence from current message
-        current_intel = extract_all_intelligence(message_text)
+        # Helper function to extract text from various message formats
+        def get_message_text(msg) -> str:
+            if isinstance(msg, str):
+                return msg
+            if isinstance(msg, dict):
+                # Try various possible field names
+                for field in ['text', 'content', 'body', 'message']:
+                    if field in msg and msg[field]:
+                        val = msg[field]
+                        if isinstance(val, str):
+                            return val
+                        elif isinstance(val, dict):
+                            # Nested message object
+                            return get_message_text(val)
+            return ""
         
-        # Also extract from conversation history if needed
-        if conversation_history:
-            history_intel = extract_from_conversation(conversation_history)
-            # Merge
-            current_intel = ExtractedIntelligence(
-                bankAccounts=list(set(current_intel.bankAccounts + history_intel.bankAccounts)),
-                upiIds=list(set(current_intel.upiIds + history_intel.upiIds)),
-                phishingLinks=list(set(current_intel.phishingLinks + history_intel.phishingLinks)),
-                phoneNumbers=list(set(current_intel.phoneNumbers + history_intel.phoneNumbers)),
-                suspiciousKeywords=list(set(current_intel.suspiciousKeywords + history_intel.suspiciousKeywords))
-            )
+        # Build full conversation text for comprehensive extraction
+        all_texts = [message_text]  # Start with current message
+        
+        for i, msg in enumerate(conversation_history):
+            msg_text = get_message_text(msg)
+            if msg_text:
+                all_texts.append(msg_text)
+        
+        # Combine all texts for extraction
+        combined_text = "\n".join(all_texts)
+        
+        # Extract intelligence from ALL messages combined
+        current_intel = extract_all_intelligence(combined_text)
         
         # Update session
         session = session_manager.update_session(
@@ -131,12 +145,10 @@ async def analyze_message(
         engagement_tracker.update(session_id, request_body.message.sender, new_intel_count)
         
         # Scammer DNA Fingerprinting (Phase 2 Optimization)
-        # Pass current full history including new message
         dna_engine = ScammerDNA()
         # DNA engine expects list of dicts. conversation_history is already list of dicts.
         # We need to add current message to a temporary list for FULL DNA analysis
         full_dna_history = conversation_history.copy()
-        # Append current message manually for analysis context
         full_dna_history.append({
             "sender": request_body.message.sender,
             "text": request_body.message.text,
@@ -159,12 +171,11 @@ async def analyze_message(
             # Not sure if scam - ask for clarification
             reply = generate_confused_response(message_text)
             
+        logger.info(f"Generated reply for session {session_id}: {reply[:50]}...")
+        
         # Smart Callback Trigger (Phase 1 Optimization)
         if session_manager.should_trigger_early_callback(session_id):
             logger.info(f"Smart Trigger: Sending early callback for session {session_id}")
-            # However, to simulate "agentic behavior", maybe good to let background handle?
-            # Creating a task_boundary might be complex inside synchronous path.
-            # We'll just trigger it explicitly.
             from guvi_callback import send_callback_to_guvi
             send_callback_to_guvi(session)
             session_manager.mark_callback_sent(session_id)
@@ -194,7 +205,6 @@ async def analyze_message(
                 "optimization_level": "expert"
             }
         )
-
         
         logger.info(f"Response: scamDetected={session.scam_detected}, messages={session.message_count}")
         
@@ -226,21 +236,15 @@ async def get_session_debug(
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+        
     return {
-        "sessionId": session.session_id,
-        "scamDetected": session.scam_detected,
-        "scamType": session.scam_type,
-        "messageCount": session.message_count,
-        "intelligence": {
-            "bankAccounts": session.intelligence.bankAccounts,
-            "upiIds": session.intelligence.upiIds,
-            "phishingLinks": session.intelligence.phishingLinks,
-            "phoneNumbers": session.intelligence.phoneNumbers,
-            "suspiciousKeywords": session.intelligence.suspiciousKeywords
-        },
-        "agentNotes": session.get_notes_string(),
-        "callbackSent": session.callback_sent
+        "session_id": session.session_id,
+        "scam_detected": session.scam_detected,
+        "scam_type": session.scam_type,
+        "message_count": session.message_count,
+        "intelligence": session.intelligence,
+        "callback_sent": session.callback_sent,
+        "notes": session.agent_notes
     }
 
 @app.post("/callback/force/{session_id}")
@@ -248,20 +252,16 @@ async def force_callback(
     session_id: str,
     x_api_key: str = Header(None, alias="x-api-key")
 ):
-    """Force send callback to GUVI for a session."""
+    """Force trigger callback for a session."""
     if x_api_key != MY_API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API key")
     
     session = session_manager.get_session(session_id)
     if not session:
+        # Try to load/recreate context?? No, just error
         raise HTTPException(status_code=404, detail="Session not found")
-    
+        
     success = send_callback_to_guvi(session)
-    if success:
-        session_manager.mark_callback_sent(session_id)
+    session_manager.mark_callback_sent(session_id)
     
-    return {"success": success, "sessionId": session_id}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return {"status": "success", "callback_triggered": True, "guvi_response": success}

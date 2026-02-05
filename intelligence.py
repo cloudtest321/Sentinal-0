@@ -1,4 +1,5 @@
 import re
+import logging
 from typing import List
 from models import ExtractedIntelligence
 
