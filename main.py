@@ -165,11 +165,21 @@ async def analyze_message(
             send_callback_async(session)
             session_manager.mark_callback_sent(session_id)
         
-        # Build response
+        # Build response with all required fields
         response = {
             "status": "success",
-            "reply": reply
+            "reply": reply,
+            "scamDetected": session.scam_detected,
+            "extractedIntelligence": {
+                "bankAccounts": session.intelligence.bankAccounts,
+                "upiIds": session.intelligence.upiIds,
+                "phishingLinks": session.intelligence.phishingLinks,
+                "phoneNumbers": session.intelligence.phoneNumbers,
+                "suspiciousKeywords": session.intelligence.suspiciousKeywords
+            }
         }
+        
+        logger.info(f"Response: scamDetected={session.scam_detected}, intel={session.intelligence}")
         
         return JSONResponse(content=response)
         

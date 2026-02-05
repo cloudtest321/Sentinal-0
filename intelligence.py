@@ -5,19 +5,21 @@ from models import ExtractedIntelligence
 def extract_bank_accounts(text: str) -> List[str]:
     """Extract potential bank account numbers (10-18 digits)."""
     patterns = [
-        r'\b\d{10,18}\b',  # Generic account number
-        r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{0,6}\b',  # With separators
+        r'(?:account|a/c|ac)[\s:.-]*(\d{10,18})',  # After "account" keyword
+        r'\b(\d{10,18})\b',  # Generic account number
+        r'(\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{0,6})',  # With separators
     ]
     accounts = []
     for pattern in patterns:
-        matches = re.findall(pattern, text)
+        matches = re.findall(pattern, text.lower())
         for match in matches:
             # Clean and validate
             clean = re.sub(r'[-\s]', '', match)
             if len(clean) >= 10 and len(clean) <= 18:
-                # Avoid phone numbers (usually 10 digits starting with 6-9)
-                if not (len(clean) == 10 and clean[0] in '6789'):
-                    accounts.append(clean)
+                # Only exclude if EXACTLY 10 digits AND starts with 6-9 (phone number)
+                if len(clean) == 10 and clean[0] in '6789':
+                    continue  # Skip phone numbers
+                accounts.append(clean)
     return list(set(accounts))
 
 def extract_upi_ids(text: str) -> List[str]:
