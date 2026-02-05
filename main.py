@@ -120,16 +120,37 @@ async def analyze_message(
         scam_detected, keywords = detect_scam(message_text, conversation_history)
         scam_type = get_scam_type(keywords) if scam_detected else None
         
+        # Helper function to extract text from various message formats
+        def get_message_text(msg) -> str:
+            if isinstance(msg, str):
+                return msg
+            if isinstance(msg, dict):
+                # Try various possible field names
+                for field in ['text', 'content', 'body', 'message']:
+                    if field in msg and msg[field]:
+                        val = msg[field]
+                        if isinstance(val, str):
+                            return val
+                        elif isinstance(val, dict):
+                            # Nested message object
+                            return get_message_text(val)
+            return ""
+        
         # Build full conversation text for comprehensive extraction
         all_texts = [message_text]  # Start with current message
-        for msg in conversation_history:
-            msg_text = msg.get("text", "") if isinstance(msg, dict) else str(msg)
+        
+        logger.info(f"Conversation history has {len(conversation_history)} messages")
+        for i, msg in enumerate(conversation_history):
+            msg_text = get_message_text(msg)
+            logger.info(f"Message {i}: type={type(msg).__name__}, keys={msg.keys() if isinstance(msg, dict) else 'N/A'}, text_len={len(msg_text)}")
             if msg_text:
                 all_texts.append(msg_text)
+                logger.info(f"  -> Added text: {msg_text[:100]}...")
         
         # Combine all texts for extraction
         combined_text = "\n".join(all_texts)
-        logger.info(f"Extracting intel from combined text ({len(all_texts)} messages)")
+        logger.info(f"Combined text for extraction ({len(all_texts)} messages, {len(combined_text)} chars):")
+        logger.info(f"  Full text: {combined_text[:500]}...")
         
         # Extract intelligence from ALL messages combined
         current_intel = extract_all_intelligence(combined_text)
