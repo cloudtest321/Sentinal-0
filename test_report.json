@@ -1,0 +1,963 @@
+{
+  "timestamp": "2026-02-16 13:21:38",
+  "total_tests": 150,
+  "passed": 150,
+  "failed": 0,
+  "pass_rate": "100.0%",
+  "modules": {
+    "scam_detector": {
+      "passed": 22,
+      "failed": 0,
+      "tests": [
+        {
+          "module": "scam_detector",
+          "test": "Detects obvious scam message",
+          "status": "PASS",
+          "detail": "score triggered, keywords=['immediately', 'blocked', 'kyc', 'call', 'account', 'verify']"
+        },
+        {
+          "module": "scam_detector",
+          "test": "Benign message not flagged",
+          "status": "PASS",
+          "detail": "keywords=[]"
+        },
+        {
+          "module": "scam_detector",
+          "test": "Single financial keyword below threshold",
+          "status": "PASS",
+          "detail": "keywords=['bank']"
+        },
+        {
+          "module": "scam_detector",
+          "test": "URL + urgency detected as scam",
+          "status": "PASS",
+          "detail": "keywords=['contains_url', 'urgent', 'bank', 'link', 'click', 'update', 'account']"
+        },
+        {
+          "module": "scam_detector",
+          "test": "contains_url keyword present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "UPI pattern detected as scam",
+          "status": "PASS",
+          "detail": "keywords=['immediately', 'contains_upi', 'paytm', 'send', 'money']"
+        },
+        {
+          "module": "scam_detector",
+          "test": "contains_upi keyword present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "Phone number detected in scam",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "contains_phone keyword present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "Conversation history boosts scam score",
+          "status": "PASS",
+          "detail": "keywords=['update', 'now']"
+        },
+        {
+          "module": "scam_detector",
+          "test": "KYC_FRAUD type detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "LOTTERY_SCAM type detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "ACCOUNT_THREAT type detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "OTP_FRAUD type detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "PHISHING type detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "GENERAL_FRAUD fallback",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "Threat keyword (blocked) alone triggers scam",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "Reward/lottery scam detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "Investment/crypto scam detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "INVESTMENT_SCAM type detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "Job scam detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scam_detector",
+          "test": "JOB_SCAM type detected",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "intelligence": {
+      "passed": 30,
+      "failed": 0,
+      "tests": [
+        {
+          "module": "intelligence",
+          "test": "Extracts 14-digit bank account",
+          "status": "PASS",
+          "detail": "found=['12345678901234']"
+        },
+        {
+          "module": "intelligence",
+          "test": "10-digit phone NOT extracted as bank account",
+          "status": "PASS",
+          "detail": "found=[]"
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts UPI ID fraud@paytm",
+          "status": "PASS",
+          "detail": "found=['scammer@ybl', 'fraud@paytm']"
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts UPI ID scammer@ybl",
+          "status": "PASS",
+          "detail": "found=['scammer@ybl', 'fraud@paytm']"
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts https URL",
+          "status": "PASS",
+          "detail": "found=['https://fake-bank.com/verify', 'www.scam-site.org']"
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts www URL",
+          "status": "PASS",
+          "detail": "found=['https://fake-bank.com/verify', 'www.scam-site.org']"
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts +91 phone number",
+          "status": "PASS",
+          "detail": "found=['+919876543210', '+918765432109']"
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts 10-digit phone (auto +91 prefix)",
+          "status": "PASS",
+          "detail": "found=['+919876543210', '+918765432109']"
+        },
+        {
+          "module": "intelligence",
+          "test": "Normalizes 91-prefix to +91",
+          "status": "PASS",
+          "detail": "found=['+919876543210']"
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts 'urgent' keyword",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts 'blocked' keyword",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts 'kyc' keyword",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts 'otp' keyword",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Full extraction finds bank account",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Full extraction finds UPI",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Full extraction finds phone",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Full extraction finds URL",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Merge preserves existing UPI",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Merge adds new UPI",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Merge preserves existing phone",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Conversation extraction finds UPI",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Conversation extraction finds phone",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Conversation extraction finds bank",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Deduplicates UPI IDs",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts email scammer@gmail.com",
+          "status": "PASS",
+          "detail": "found=['scammer@gmail.com', 'support@fake-bank.org']"
+        },
+        {
+          "module": "intelligence",
+          "test": "Extracts email support@fake-bank.org",
+          "status": "PASS",
+          "detail": "found=['scammer@gmail.com', 'support@fake-bank.org']"
+        },
+        {
+          "module": "intelligence",
+          "test": "UPI IDs filtered from email extraction",
+          "status": "PASS",
+          "detail": "found=[]"
+        },
+        {
+          "module": "intelligence",
+          "test": "Full extraction finds email",
+          "status": "PASS",
+          "detail": "found=['admin@scamsite.com']"
+        },
+        {
+          "module": "intelligence",
+          "test": "Email merge preserves existing",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "intelligence",
+          "test": "Email merge adds new",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "agent_persona": {
+      "passed": 12,
+      "failed": 0,
+      "tests": [
+        {
+          "module": "agent_persona",
+          "test": "Payment request classified",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "Verification classified",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "Link request classified",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "Initial threat classified",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "General fallback",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "Fallback responses exist for 'initial'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "Fallback responses exist for 'payment_request'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "Fallback responses exist for 'verification'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "Fallback responses exist for 'link_request'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "Fallback responses exist for 'general'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "agent_persona",
+          "test": "Fallback response is non-empty string",
+          "status": "PASS",
+          "detail": "resp=I am ready to pay. Just give me the details."
+        },
+        {
+          "module": "agent_persona",
+          "test": "Fallback has response variety (randomized)",
+          "status": "PASS",
+          "detail": "unique=4"
+        }
+      ]
+    },
+    "scammer_dna": {
+      "passed": 15,
+      "failed": 0,
+      "tests": [
+        {
+          "module": "scammer_dna",
+          "test": "Generates 12-char signature",
+          "status": "PASS",
+          "detail": "sig=028121325e80"
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Features has 'keywords' key",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Features has 'timing' key",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Features has 'structure' key",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Features has 'tactics' key",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Same input produces same signature",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Different input produces different signature",
+          "status": "PASS",
+          "detail": "sig1=028121325e80, sig3=80756c1c7c2f"
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Timing pattern is string",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Timing pattern is valid value",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Structure is valid value",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Tactics is a list",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Urgency tactic detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Handles empty history",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Handles single message",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "scammer_dna",
+          "test": "Single message timing is insufficient",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "session_manager": {
+      "passed": 20,
+      "failed": 0,
+      "tests": [
+        {
+          "module": "session_manager",
+          "test": "Creates new session",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Session ID matches",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Scam not detected initially",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Message count starts at 0",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Callback not sent initially",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Returns existing session on same ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Scam detected after update",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Message count incremented",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Scam type set",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "UPI intelligence stored",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Bank account merged",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Previous UPI preserved after merge",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Message count is now 2",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Agent notes stored",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Notes string formatted",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Callback marked as sent",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Should trigger callback (has intel + scam detected)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Returns None for nonexistent session",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Should not trigger for nonexistent",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "session_manager",
+          "test": "Session cleared",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "engagement_metrics": {
+      "passed": 14,
+      "failed": 0,
+      "tests": [
+        {
+          "module": "engagement_metrics",
+          "test": "Session tracked",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Turn count starts at 0",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Turn count incremented",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Scammer message counted",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Intel count updated",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Impact has duration_seconds",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Impact has turns_completed",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Impact has intelligence_density",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Impact has estimated_victims_protected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Impact has time_wasted_for_scammer",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Auto-creates session on calculate_impact",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Low intel density classified as medium",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Impact has engagementDurationSeconds",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "engagement_metrics",
+          "test": "Impact has totalMessagesExchanged",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "models (Pydantic)": {
+      "passed": 8,
+      "failed": 0,
+      "tests": [
+        {
+          "module": "models (Pydantic)",
+          "test": "Valid Message created",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "models (Pydantic)",
+          "test": "Missing timestamp rejected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "models (Pydantic)",
+          "test": "Valid AnalyzeRequest created",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "models (Pydantic)",
+          "test": "Missing message rejected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "models (Pydantic)",
+          "test": "Intel defaults to empty lists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "models (Pydantic)",
+          "test": "Intel emailAddresses defaults to empty",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "models (Pydantic)",
+          "test": "AnalyzeResponse created",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "models (Pydantic)",
+          "test": "GuviCallbackPayload created",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "config": {
+      "passed": 5,
+      "failed": 0,
+      "tests": [
+        {
+          "module": "config",
+          "test": "API key is set",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "config",
+          "test": "OpenRouter base URL is valid",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "config",
+          "test": "Free models list has 4 models",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "config",
+          "test": "GUVI callback URL is HTTPS",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "config",
+          "test": "GUVI URL points to hackathon endpoint",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "API Integration (TestClient)": {
+      "passed": 24,
+      "failed": 0,
+      "tests": [
+        {
+          "module": "API Integration (TestClient)",
+          "test": "GET / returns 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "GET / returns ok status",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "GET /health returns healthy",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Bad API key returns 401",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Missing message returns 422",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Scam message returns 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Response has status=success",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Response has reply",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Scam detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "extractedIntelligence present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Phone number extracted",
+          "status": "PASS",
+          "detail": "phones=['+919876543210']"
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "UPI ID extracted",
+          "status": "PASS",
+          "detail": "upis=['fraud@upi']"
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "scamAnalysis present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "scammerProfile present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "engagementMetrics present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Multi-turn: bank account extracted",
+          "status": "PASS",
+          "detail": "banks=['12345678901234', '919876543210']"
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Multi-turn: previous phone preserved",
+          "status": "PASS",
+          "detail": "phones=['+919876543210']"
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Multi-turn: previous UPI preserved",
+          "status": "PASS",
+          "detail": "upis=['fraud@upi']"
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Benign message returns success",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Benign message: scam NOT detected",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "/api/analyze endpoint works",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Debug endpoint returns session data",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Debug shows scam_detected=True",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "module": "API Integration (TestClient)",
+          "test": "Debug shows message_count >= 2",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    }
+  }
+}
