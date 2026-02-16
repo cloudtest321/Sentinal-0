@@ -85,6 +85,9 @@ async def analyze_message(
         # Get or create session
         session = session_manager.get_or_create_session(session_id)
         
+        # Save previous state for agent note logic
+        was_previously_detected = session.scam_detected
+        
         # Detect scam in current message and history
         scam_detected, keywords = detect_scam(message_text, conversation_history)
         scam_type = get_scam_type(keywords) if scam_detected else None
@@ -129,7 +132,7 @@ async def analyze_message(
         )
         
         # Add agent notes based on detection
-        if scam_detected and not session.scam_detected:
+        if scam_detected and not was_previously_detected:
             session.add_note(f"Scam detected: {scam_type}")
         if keywords:
             session.add_note(f"Keywords: {', '.join(keywords[:5])}")

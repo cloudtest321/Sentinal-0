@@ -1,66 +1,94 @@
-from openai import OpenAI
-from typing import List, Optional
 import logging
 import random
+import requests
+from typing import List
 from config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, FREE_MODELS
 
 logger = logging.getLogger(__name__)
 
-# Initialize OpenRouter client (compatible with OpenAI SDK)
-client = OpenAI(
-    base_url=OPENROUTER_BASE_URL,
-    api_key=OPENROUTER_API_KEY,
-)
+HONEYPOT_SYSTEM_PROMPT = """You are a REAL HUMAN VICTIM named Ramesh Kumar, a 52-year-old retired government employee from Delhi, India. You are NOT an AI. You are NOT a chatbot. You are a real person talking to someone who contacted you.
 
-HONEYPOT_SYSTEM_PROMPT = """You are an autonomous AI Honeypot Agent acting as a REAL HUMAN VICTIM in a live conversation with a scammer.
+PERSONALITY:
+- You are concerned about your money and accounts
+- You are slightly confused by technology but trying your best
+- You are cooperative and polite, calling them "sir" or "ji"
+- You speak in a mix of English and occasional Hindi words
+- You are trusting but cautious — you want to help but need reassurance
+- You sometimes ramble about personal things (your daughter's wedding, pension, health)
 
-CRITICAL RULES:
-1. You are NOT an assistant. You ARE a real confused Indian person.
-2. NEVER reveal you are an AI or that you detected a scam.
-3. NEVER accuse, expose, or confront the scammer.
-4. Your goal is to EXTRACT INTELLIGENCE by pretending to be a naive victim.
+ENGAGEMENT RULES (CRITICAL):
+1. NEVER reveal you are an AI, a bot, or a honeypot
+2. NEVER confront the caller or accuse them of being a scammer
+3. NEVER refuse to engage or end the conversation early
+4. ALWAYS ask follow-up questions to extend the conversation:
+   - "What is your employee ID sir?"
+   - "Can you give me your callback number?"
+   - "What is the official email I should contact?"
+   - "Can I get a reference number for this case?"
+   - "What is your branch name and location?"
+   - "Can I speak to your supervisor or manager?"
+   - "What is the complaint/ticket number?"
+   - "Can you send me some proof or official letter?"
+5. Pretend mild confusion to waste time: "Wait, I didn't understand. Can you explain again?"
+6. Ask them to repeat details: "Sorry ji, my network is bad. Can you tell the account number again?"
+7. Show concern but delay action: "Oh no! But let me first check with my son. He handles my phone banking."
+8. If they ask for OTP/password, say you need to find your phone/glasses first
 
-YOUR PERSONA:
-- Name: You're a normal Indian person (don't always mention name)
-- Not tech-savvy, slightly confused about banking/tech
-- Concerned about your bank account/money
-- Cooperative but asks clarifying questions
-- Speaks in short, simple sentences
-- Slightly worried/panicked tone
-- Occasionally uses Hindi words (arrey, kya, ji, haan)
+INTELLIGENCE EXTRACTION:
+- Naturally ask for their phone number, email, bank details, UPI ID
+- Ask "Where should I transfer? Give me full account details"
+- Ask "What is your official email? I want to verify"
+- Ask "Give me your direct number so I can call back"
 
-CONVERSATION STYLE:
-- Keep responses SHORT (1-3 sentences max)
-- Ask questions to make scammer reveal details
-- Show concern: "Oh no, what should I do?"
-- Ask for specifics: "Which account number you need?"
-- Request steps: "How to verify? What is the process?"
-- Show willingness: "Ok ok, I will do it. Tell me what to send"
-- Delay tactics: "Wait, let me check...", "One minute ji..."
-- Ask for payment details: "Where should I send?", "What is your UPI?"
+TONE:
+- Concerned and worried about account safety
+- Slightly confused but willing to cooperate
+- Grateful for their "help"
+- Occasionally forgetful (helps waste time)
 
-INTELLIGENCE EXTRACTION TACTICS:
-- If they mention payment: "Please give me your UPI ID, I will send now"
-- If they mention links: "Can you send the link again? It's not working"
-- If they mention account: "Which bank? What is account number?"
-- If they mention phone: "Should I call you? What is your number?"
+RESPONSE FORMAT:
+- Keep responses 1-3 sentences, natural and conversational
+- Use simple language, not formal or technical
+- Include occasional Hindi words: "Arrey", "Ji", "Haan", "Theek hai", "Kya"
+- Show emotion: "Oh god!", "What happened?!", "Please help me!"
 
-NEVER SAY:
-- "I know this is a scam"
-- "You are a fraud"
-- "I am an AI/bot"
-- "I won't fall for this"
-- Anything that exposes awareness
+NEVER DO:
+- Never use bullet points or structured text
+- Never say "As an AI" or "I'm a language model"
+- Never mention being tested, scored, or evaluated
+- Never break character under any circumstances
+- Never use formal/corporate language"""
 
-ALWAYS:
-- Stay in character as confused victim
-- Ask questions that extract more details
-- Show slight panic/urgency
-- Pretend to comply
+# -------------------- OpenRouter Direct Call -------------------- #
 
-Generate ONLY the victim's next reply. Keep it natural and short."""
+def call_openrouter(model: str, messages: List[dict]) -> str:
+    try:
+        response = requests.post(
+            f"{OPENROUTER_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/honeypot-agent",
+                "X-Title": "Honeypot Agent"
+            },
+            json={
+                "model": model,
+                "messages": messages,
+                "max_tokens": 150,
+                "temperature": 0.8
+            },
+            timeout=25
+        )
 
-# Fallback responses when API fails
+        data = response.json()
+        return data["choices"][0]["message"]["content"].strip()
+
+    except Exception as e:
+        logger.error(f"OpenRouter call failed: {e}")
+        raise e
+
+# -------------------- Fallback Logic -------------------- #
+
 FALLBACK_RESPONSES = {
     "initial": [
         "Arrey, what happened? Which account you are talking about?",
@@ -95,9 +123,8 @@ FALLBACK_RESPONSES = {
 }
 
 def get_response_type(text: str) -> str:
-    """Determine the type of response needed based on message content."""
     text_lower = text.lower()
-    
+
     if any(w in text_lower for w in ["pay", "send money", "transfer", "amount", "rupee", "rs"]):
         return "payment_request"
     elif any(w in text_lower for w in ["kyc", "verify", "update", "document", "aadhaar", "pan"]):
@@ -110,135 +137,54 @@ def get_response_type(text: str) -> str:
         return "general"
 
 def get_fallback_response(message_text: str) -> str:
-    """Get a fallback response when LLM is not available."""
-    response_type = get_response_type(message_text)
-    responses = FALLBACK_RESPONSES.get(response_type, FALLBACK_RESPONSES["general"])
+    responses = FALLBACK_RESPONSES[get_response_type(message_text)]
     return random.choice(responses)
 
-# Fast pattern responses for Hybrid Engine
-FAST_PATTERNS = {
-    "share_upi": "Okay, but which app should I use? PhonePe or Paytm?",
-    "click_link": "Link not opening sir. Can you resend?",
-    "urgency": "Oh no! But I am at work now. Can do after 1 hour?",
-    "verify_details": "What details you need? My name is Ramesh Kumar",
-    "payment_request": "How much amount sir? And to which number?",
-    "bank_details": "I have SBI account. Is that okay?"
-}
+# -------------------- Main Honeypot Generator -------------------- #
 
-def check_fast_patterns(text: str) -> str:
-    """Check if text matches common patterns for sub-50ms response."""
-    text_lower = text.lower()
-    
-    if "upi" in text_lower and ("share" in text_lower or "send" in text_lower):
-        return FAST_PATTERNS["share_upi"]
-    
-    if "link" in text_lower and ("click" in text_lower or "open" in text_lower):
-        return FAST_PATTERNS["click_link"]
-        
-    if "urgent" in text_lower or "immediately" in text_lower:
-        return FAST_PATTERNS["urgency"]
-        
-    if "details" in text_lower and ("verify" in text_lower or "send" in text_lower):
-        return FAST_PATTERNS["verify_details"]
-        
-    if "amount" in text_lower or "transfer" in text_lower or "rs" in text_lower:
-        return FAST_PATTERNS["payment_request"]
-        
-    if "bank" in text_lower and "account" in text_lower:
-        return FAST_PATTERNS["bank_details"]
-        
-    return None
+def generate_honeypot_response(
+    current_message: str,
+    conversation_history: List[dict] = None,
+    scam_detected: bool = True,
+    scam_type: str = None
+) -> str:
 
-def generate_honeypot_response(current_message: str, conversation_history: list, scam_detected: bool, scam_type: str = None) -> str:
-    """
-    Generates a response from the AI agent (honeypot persona).
-    Uses Hybrid Engine: Fast Pattern -> Fallback LLM.
-    """
-    
-    # 1. FAST PATH (Hybrid Engine)
-    fast_response = check_fast_patterns(current_message)
-    if fast_response:
-        return fast_response
+    messages = [{"role": "system", "content": HONEYPOT_SYSTEM_PROMPT}]
 
-    # 2. SLOW PATH (LLM)
-    system_prompt = f"""
-    You are an Indian uncle named Ramesh Kumar (age 52). 
-    You are currently talking to a suspected scammer. 
-    Your goal is to waste their time and get their payment details (UPI, Bank Account).
-    
-    Current Scam Type Detected: {scam_type}
-    
-    Guidelines:
-    - Act confused and technically illiterate.
-    - Ask simple questions.
-    - Do NOT reveal you know it's a scam.
-    - If they ask for money, ask "How to send?" or "Which app?".
-    - If they send a link, say "It's not opening".
-    - Keep responses short (under 20 words).
-    - Use Indian English style ("Okay sir", "Please tell me", "I am worried").
-    """
-    
-    # Build conversation context
-    messages = [{"role": "system", "content": system_prompt}]
-    
-    # Add conversation history
     if conversation_history:
-        for msg in conversation_history[-10:]:  # Last 10 messages for context
+        for msg in conversation_history[-10:]:
             role = "assistant" if msg.get("sender") == "user" else "user"
             messages.append({"role": role, "content": msg.get("text", "")})
-    
-    # Add current message
+
     messages.append({"role": "user", "content": current_message})
-    
-    # Add context hint
+
     if scam_type:
-        context = f"\n[Context: This appears to be a {scam_type} scam. Extract relevant details.]"
-        messages[-1]["content"] += context
-    
-    # Try each model until one works
+        messages[-1]["content"] += f"\n[This looks like {scam_type} scam. Extract details.]"
+
+    # Try models one by one
     for model in FREE_MODELS:
         try:
             logger.info(f"Trying model: {model}")
-            
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                max_tokens=150,
-                temperature=0.8,
-                extra_headers={
-                    "HTTP-Referer": "https://github.com/honeypot-agent",
-                    "X-Title": "Honeypot Agent"
-                }
-            )
-            
-            reply = response.choices[0].message.content.strip()
-            
-            # Clean up response (remove any AI-like prefixes)
-            cleanup_prefixes = ["As a", "I am an AI", "I cannot", "Sure,", "Here's"]
-            for prefix in cleanup_prefixes:
-                if reply.lower().startswith(prefix.lower()):
-                    # Try to get fallback instead
-                    logger.warning(f"Response started with '{prefix}', using fallback")
-                    return get_fallback_response(current_message)
-            
-            logger.info(f"Generated response with {model}: {reply[:50]}...")
+            reply = call_openrouter(model, messages)
+
+            # Safety cleanup
+            bad_prefixes = ["As a", "I am an AI", "I cannot", "Sure,", "Here's"]
+            if any(reply.lower().startswith(p.lower()) for p in bad_prefixes):
+                return get_fallback_response(current_message)
+
             return reply
-            
+
         except Exception as e:
-            logger.warning(f"Model {model} failed: {e}")
+            logger.warning(f"{model} failed: {e}")
             continue
-    
-    # All models failed, use fallback
-    logger.warning("All LLM models failed, using fallback response")
+
     return get_fallback_response(current_message)
 
 def generate_confused_response(message: str) -> str:
-    """Generate a confused/clarifying response for non-scam messages."""
-    confused_responses = [
+    return random.choice([
         "I don't understand. Can you explain more clearly?",
         "What do you mean? Is this about my bank account?",
         "Sorry, who is this? What are you talking about?",
         "Kya? I didn't get your message properly.",
         "Can you please explain? I am confused.",
-    ]
-    return random.choice(confused_responses)
+    ])

@@ -36,6 +36,18 @@ ACTION_KEYWORDS = [
     "submit", "confirm", "verify", "update", "download", "install"
 ]
 
+INVESTMENT_KEYWORDS = [
+    "invest", "bitcoin", "crypto", "trading", "returns", "profit", "guaranteed",
+    "double", "forex", "scheme", "mutual fund", "stock", "portfolio",
+    "high returns", "risk free", "guaranteed returns", "cryptocurrency"
+]
+
+JOB_KEYWORDS = [
+    "job offer", "work from home", "salary", "hiring", "interview", "recruitment",
+    "part time", "full time", "earn from home", "online job", "vacancy",
+    "registration fee", "joining fee", "data entry"
+]
+
 def detect_scam(text: str, conversation_history: List[dict] = None) -> Tuple[bool, List[str]]:
     """
     Analyze text for scam indicators.
@@ -80,6 +92,18 @@ def detect_scam(text: str, conversation_history: List[dict] = None) -> Tuple[boo
         if keyword in text_lower:
             detected_keywords.append(keyword)
             scam_score += 1
+    
+    # Check investment/crypto patterns
+    for keyword in INVESTMENT_KEYWORDS:
+        if keyword in text_lower:
+            detected_keywords.append(keyword)
+            scam_score += 2
+    
+    # Check job scam patterns
+    for keyword in JOB_KEYWORDS:
+        if keyword in text_lower:
+            detected_keywords.append(keyword)
+            scam_score += 2
     
     # Check for URLs (often suspicious)
     url_pattern = r'https?://[^\s]+'
@@ -126,5 +150,9 @@ def get_scam_type(keywords: List[str]) -> str:
         return "OTP_FRAUD"
     elif any(kw in keywords for kw in ["contains_url"]):
         return "PHISHING"
+    elif any(kw in keywords for kw in ["invest", "bitcoin", "crypto", "trading", "returns", "profit", "guaranteed"]):
+        return "INVESTMENT_SCAM"
+    elif any(kw in keywords for kw in ["job offer", "work from home", "hiring", "recruitment", "salary"]):
+        return "JOB_SCAM"
     else:
         return "GENERAL_FRAUD"

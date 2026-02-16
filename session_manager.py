@@ -108,6 +108,7 @@ class SessionManager:
                 upiIds=list(set(session.intelligence.upiIds + intelligence.upiIds)),
                 phishingLinks=list(set(session.intelligence.phishingLinks + intelligence.phishingLinks)),
                 phoneNumbers=list(set(session.intelligence.phoneNumbers + intelligence.phoneNumbers)),
+                emailAddresses=list(set(session.intelligence.emailAddresses + intelligence.emailAddresses)),
                 suspiciousKeywords=list(set(session.intelligence.suspiciousKeywords + intelligence.suspiciousKeywords))
             )
         

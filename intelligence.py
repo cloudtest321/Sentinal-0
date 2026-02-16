@@ -8,6 +8,7 @@ URL_PATTERN = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
 PHONE_PATTERN = re.compile(r'\b(?:\+91|91)?[6-9]\d{9}\b')
 UPI_PATTERN = re.compile(r'[a-zA-Z0-9.\-_]+@[a-zA-Z]{3,}')
 BANK_ACCOUNT_PATTERN = re.compile(r'\b\d{9,18}\b')
+EMAIL_PATTERN = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
 
 def extract_bank_accounts(text: str) -> List[str]:
     """Extract potential bank account numbers (10-18 digits)."""
@@ -30,6 +31,15 @@ def extract_upi_ids(text: str) -> List[str]:
 def extract_phishing_links(text: str) -> List[str]:
     """Extract suspicious URLs."""
     return list(set(URL_PATTERN.findall(text)))
+
+def extract_email_addresses(text: str) -> List[str]:
+    """Extract email addresses from text."""
+    emails = EMAIL_PATTERN.findall(text)
+    # Filter out UPI IDs (common UPI suffixes)
+    upi_suffixes = ['@upi', '@ybl', '@paytm', '@okhdfcbank', '@okicici', '@oksbi', 
+                    '@apl', '@axl', '@ibl', '@sbi', '@hdfcbank', '@icici', '@axisbank']
+    filtered = [e for e in emails if not any(e.lower().endswith(s) for s in upi_suffixes)]
+    return list(set(filtered))
 
 def extract_phone_numbers(text: str) -> List[str]:
     """Extract Indian phone numbers."""
@@ -73,6 +83,7 @@ def extract_all_intelligence(text: str, existing: ExtractedIntelligence = None) 
         upiIds=extract_upi_ids(text),
         phishingLinks=extract_phishing_links(text),
         phoneNumbers=extract_phone_numbers(text),
+        emailAddresses=extract_email_addresses(text),
         suspiciousKeywords=extract_suspicious_keywords(text)
     )
     
@@ -83,6 +94,7 @@ def extract_all_intelligence(text: str, existing: ExtractedIntelligence = None) 
             upiIds=list(set(existing.upiIds + new_intel.upiIds)),
             phishingLinks=list(set(existing.phishingLinks + new_intel.phishingLinks)),
             phoneNumbers=list(set(existing.phoneNumbers + new_intel.phoneNumbers)),
+            emailAddresses=list(set(existing.emailAddresses + new_intel.emailAddresses)),
             suspiciousKeywords=list(set(existing.suspiciousKeywords + new_intel.suspiciousKeywords))
         )
     

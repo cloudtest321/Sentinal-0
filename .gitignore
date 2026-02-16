@@ -37,3 +37,17 @@ env/
 
 # Logs
 *.log
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Test artifacts
+test_report.json
+
+# Temp files
+task.md
+
+# Gemini / Agent
+.gemini/

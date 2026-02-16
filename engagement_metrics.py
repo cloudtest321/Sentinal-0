@@ -50,7 +50,9 @@ class EngagementTracker:
         
         return {
             "duration_seconds": int(elapsed_time),
+            "engagementDurationSeconds": int(elapsed_time),
             "turns_completed": session['turn_count'],
+            "totalMessagesExchanged": session['turn_count'],
             "intelligence_density": "high" if (session['intelligence_extracted_count'] > 2) else "medium",
             "estimated_victims_protected": max(0, potential_victims_protected),
             "time_wasted_for_scammer": time_str

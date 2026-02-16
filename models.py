@@ -23,6 +23,7 @@ class ExtractedIntelligence(BaseModel):
     upiIds: List[str] = []
     phishingLinks: List[str] = []
     phoneNumbers: List[str] = []
+    emailAddresses: List[str] = []
     suspiciousKeywords: List[str] = []
 
 class AnalyzeResponse(BaseModel):
