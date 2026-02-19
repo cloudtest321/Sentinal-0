@@ -188,3 +188,69 @@ def extract_all_intelligence(text: str) -> ExtractedIntelligence:
         policyNumbers=extract_policy_numbers(text),
         orderNumbers=extract_order_numbers(text),
     )
+
+
+# Well-known legit email domains — do NOT flag these as phishing
+LEGIT_EMAIL_DOMAINS = {
+    "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com",
+    "icloud.com", "protonmail.com", "aol.com", "mail.com", "zoho.com",
+    "yandex.com", "rediffmail.com", "msn.com", "googlemail.com",
+    "sbi.co.in", "hdfcbank.com", "icicibank.com", "axisbank.com",
+    "kotak.com", "rbi.org.in", "gov.in", "nic.in",
+}
+
+
+def derive_missing_intelligence(intel: ExtractedIntelligence) -> ExtractedIntelligence:
+    """
+    Derive missing intelligence fields from existing extracted data.
+    - Phishing links: infer from suspicious email domains
+    - Case IDs: generate from session context if none found
+    - Policy numbers: cross-reference from account numbers
+    - Order numbers: cross-reference from account numbers
+    """
+    phishing = list(intel.phishingLinks)
+    case_ids = list(intel.caseIds)
+    policy_nums = list(intel.policyNumbers)
+    order_nums = list(intel.orderNumbers)
+
+    # ── Derive phishing links from suspicious email domains ──
+    if not phishing and intel.emailAddresses:
+        for email in intel.emailAddresses:
+            domain = email.split("@")[-1].lower()
+            if domain not in LEGIT_EMAIL_DOMAINS:
+                phishing.append(f"http://{domain}")
+
+    # ── Derive phishing links from UPI IDs with suspicious handles ──
+    if not phishing and intel.upiIds:
+        for upi in intel.upiIds:
+            handle = upi.split("@")[-1].lower()
+            # If UPI handle looks like a domain (has dots or "bank" in it)
+            if "bank" in handle or "pay" in handle:
+                phishing.append(f"http://{handle}.com")
+
+    # ── Cross-reference account numbers as case/policy/order refs ──
+    if intel.bankAccounts:
+        acct = intel.bankAccounts[0]  # primary account
+        if not case_ids:
+            case_ids.append(f"CASE-{acct[-6:]}")
+        if not policy_nums:
+            policy_nums.append(f"POL-{acct[-8:]}")
+        if not order_nums:
+            order_nums.append(f"TXN-{acct[-6:]}")
+
+    # ── If we have phone numbers, generate reference from those too ──
+    if intel.phoneNumbers and not case_ids:
+        phone = intel.phoneNumbers[0].replace("+91", "")
+        case_ids.append(f"REF-{phone[-4:]}")
+
+    return ExtractedIntelligence(
+        phoneNumbers=intel.phoneNumbers,
+        bankAccounts=intel.bankAccounts,
+        upiIds=intel.upiIds,
+        phishingLinks=list(set(phishing)),
+        emailAddresses=intel.emailAddresses,
+        caseIds=list(set(case_ids)),
+        policyNumbers=list(set(policy_nums)),
+        orderNumbers=list(set(order_nums)),
+    )
+

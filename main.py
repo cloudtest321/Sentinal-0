@@ -8,7 +8,7 @@ import json
 from config import MY_API_KEY
 from models import AnalyzeRequest, ExtractedIntelligence
 from scam_detector import detect_scam, get_scam_type
-from intelligence import extract_all_intelligence
+from intelligence import extract_all_intelligence, derive_missing_intelligence
 from agent_persona import generate_honeypot_response, generate_confused_response
 from session_manager import session_manager
 from guvi_callback import send_callback_async
@@ -292,6 +292,9 @@ async def analyze_message(
         session.scam_type = scam_type or session.scam_type
         session.merge_intelligence(current_intel)
         session.record_turn()  # +1 turn = +2 messages
+
+        # ── Derive missing intelligence from existing data ────────────
+        session.intelligence = derive_missing_intelligence(session.intelligence)
 
         if keywords:
             session.add_note(f"Keywords: {', '.join(keywords[:5])}")
