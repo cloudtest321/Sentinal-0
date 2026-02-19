@@ -14,7 +14,7 @@ def send_callback_to_guvi(session: SessionData) -> bool:
         "sessionId": session.session_id,
         "scamDetected": session.scam_detected,
         "scamType": session.scam_type or "GENERAL_FRAUD",
-        "confidenceLevel": 0.92,
+        "confidenceLevel": session.confidence_level,
         "totalMessagesExchanged": metrics["totalMessagesExchanged"],
         "engagementDurationSeconds": metrics["engagementDurationSeconds"],
         "extractedIntelligence": {

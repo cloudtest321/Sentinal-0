@@ -14,6 +14,7 @@ class SessionData:
         self.session_id = session_id
         self.scam_detected = False
         self.scam_type: Optional[str] = None
+        self.confidence_level = 0.50  # baseline — updated from scam_score
         self.intelligence = ExtractedIntelligence()
         self.agent_notes: list = []
         self.callback_sent = False
@@ -26,6 +27,7 @@ class SessionData:
         # Message tracking
         self._turn_count = 0
         self._history_message_count = 0  # from conversationHistory
+        self._history_duration = 0  # seconds from GUVI conversation timestamps
 
     @property
     def message_count(self) -> int:
@@ -48,18 +50,51 @@ class SessionData:
         if total > self._history_message_count:
             self._history_message_count = total
 
+    def update_duration_from_history(self, raw_history: list):
+        """
+        Calculate REAL engagement duration from GUVI's conversation timestamps.
+        Finds the time span between the earliest and latest message timestamps.
+        """
+        timestamps = []
+        for item in raw_history:
+            if not isinstance(item, dict):
+                continue
+            ts = item.get("timestamp")
+            if ts is None:
+                continue
+            # Handle epoch milliseconds (int or string)
+            try:
+                ts_val = int(ts)
+                if ts_val > 1_000_000_000_000:  # epoch in ms → convert to seconds
+                    ts_val = ts_val // 1000
+                if ts_val > 1_000_000_000:  # valid epoch seconds
+                    timestamps.append(ts_val)
+            except (ValueError, TypeError):
+                pass
+            # Handle ISO format strings (e.g. "2025-02-11T10:30:00Z")
+            if isinstance(ts, str) and "T" in ts:
+                try:
+                    from datetime import timezone
+                    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                    timestamps.append(int(dt.timestamp()))
+                except Exception:
+                    pass
+
+        if len(timestamps) >= 2:
+            duration = max(timestamps) - min(timestamps)
+            if duration > self._history_duration:
+                self._history_duration = duration
+
     def get_engagement_metrics(self) -> dict:
         """
         Calculate engagement metrics from session state.
         Returns exact rubric format — no separate tracker needed.
         """
-        elapsed = time.time() - self.start_time
-        duration = int(elapsed)
+        # Wall-clock time between first and last API call
+        wall_clock = int(time.time() - self.start_time)
 
-        # Smart floor: if we've had 3+ turns (6+ messages), assume
-        # at least 200s of real engagement (exceeds 180s threshold)
-        if self._turn_count >= 3 and duration < 200:
-            duration = 200
+        # Use the BEST duration: max of wall-clock, history timestamps
+        duration = max(wall_clock, self._history_duration)
 
         return {
             "engagementDurationSeconds": duration,

@@ -98,7 +98,7 @@ def detect_scam(text: str, conversation_history: List[dict] = None) -> Tuple[boo
     # Threshold = 1 (aggressive — all eval scenarios are scams)
     is_scam = scam_score >= 1
 
-    return is_scam, list(set(detected_keywords))
+    return is_scam, list(set(detected_keywords)), scam_score
 
 
 def get_scam_type(keywords: List[str]) -> str:

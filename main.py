@@ -87,7 +87,7 @@ def _build_response(session, scam_detected, scam_type, keywords, reply):
         "status": "success",
         "scamDetected": scam_detected,
         "scamType": scam_type or session.scam_type or "GENERAL_FRAUD",
-        "confidenceLevel": 0.92,
+        "confidenceLevel": session.confidence_level,
         "totalMessagesExchanged": metrics["totalMessagesExchanged"],
         "engagementDurationSeconds": metrics["engagementDurationSeconds"],
         "extractedIntelligence": {
@@ -227,10 +227,12 @@ async def analyze_message(
         # ── Session (single source of truth) ───────────────────────────
         session = session_manager.get_or_create(session_id)
 
-        # ── Update message count from conversation history ─────────────
+        # ── Update message count and duration from conversation history ──
         # Use the LARGER of raw vs parsed history counts
         effective_history_count = max(len(raw_history), len(parsed_history))
         session.update_message_count_from_history(effective_history_count)
+        # Calculate real duration from GUVI conversation timestamps
+        session.update_duration_from_history(raw_history)
 
         # ── Scam Detection ─────────────────────────────────────────────
         if session.scam_detected:
@@ -247,8 +249,23 @@ async def analyze_message(
                         "text": item.get("text", item.get("content", "")),
                         "timestamp": item.get("timestamp", 0),
                     })
-            scam_detected, keywords = detect_scam(message_text, conversation_history)
+            scam_detected, keywords, scam_score = detect_scam(message_text, conversation_history)
             scam_type = get_scam_type(keywords) if scam_detected else None
+
+            # Calculate REAL confidence from scam_score
+            # Score 1=0.53, 5=0.65, 10=0.80, 15=0.95, 16+=0.99
+            if scam_detected:
+                confidence = min(0.50 + scam_score * 0.03, 0.99)
+                confidence = round(confidence, 2)
+                session.confidence_level = max(session.confidence_level, confidence)
+
+            # Also classify scamType from full history for better accuracy
+            if scam_detected and scam_type == "GENERAL_FRAUD" and conversation_history:
+                all_history_text = " ".join(h.get("text", "") for h in conversation_history)
+                _, history_keywords, _ = detect_scam(all_history_text)
+                history_type = get_scam_type(history_keywords)
+                if history_type != "GENERAL_FRAUD":
+                    scam_type = history_type
 
         # ── Intelligence Extraction (current message + full history) ───
         current_intel = extract_all_intelligence(message_text)
