@@ -1,0 +1,54 @@
+=== [1] SCAM DETECTION (25 pts) ===
+  Y KYC        type=KYC_FRAUD            conf=0.83
+  Y Lottery    type=LOTTERY_SCAM         conf=0.68
+  Y OTP        type=OTP_FRAUD            conf=0.68
+  Y Threat     type=ACCOUNT_THREAT       conf=0.86
+  Y Invest     type=INVESTMENT_SCAM      conf=0.62
+  Y Phish      type=KYC_FRAUD            conf=0.74
+  Score: 25/25 (6/6 detected)
+
+=== [2] INTELLIGENCE (25 pts) ===
+  Y phoneNumbers         = ['+919876543210', '9876543210']
+  Y bankAccounts         = ['08012345678', '1234567890123456']
+  Y upiIds               = ['fraud@paytm', 'ram@oksbi']
+  Y phishingLinks        = ['http://scam.xyz']
+  Y emailAddresses       = ['a@b.com']
+  Y caseIds              = ['FIR-2024-001']
+  Y policyNumbers        = ['POL-98765']
+  Y orderNumbers         = ['ORD-12345']
+  Score: 25/25 (8/8 types)
+
+=== [3] ENGAGEMENT (15 pts) ===
+  Messages: 12 (need >=6)
+  Duration: 225s (need >=180)
+  Reply: Fine, I have PhonePe open. What is your UPI ID? But demanding immediate payment is a major scam red flag! Can I pay at y
+  Score: 15/15
+
+=== [4] RESPONSE STRUCTURE (20 pts) ===
+  Y sessionId                      = 6c0141da-3411-413b-90f0-c17807b4f679
+  Y status                         = success
+  Y scamDetected                   = True
+  Y scamType                       = GENERAL_FRAUD
+  Y confidenceLevel                = 0.62
+  Y totalMessagesExchanged         = 12
+  Y engagementDurationSeconds      = 225
+  Y extractedIntelligence          = {'phoneNumbers': [], 'bankAccounts': [], 'upiIds': [], 'phis
+  Y engagementMetrics              = {'engagementDurationSeconds': 225, 'totalMessagesExchanged':
+  Y agentNotes                     = Scam detected: GENERAL_FRAUD. Case/reference IDs: med.
+  Y reply                          = Fine, I have PhonePe open. What is your UPI ID? But demandin
+  Score: 20/20 (11/11 fields)
+
+=== [5] CONVERSATION QUALITY (15 pts) ===
+  Y Has questions
+  Y Red flag callouts
+  Y Elicitation
+  Score: 15/15
+
+==================================================
+TOTAL: 100/100
+  [1] Detection:    25/25
+  [2] Intelligence: 25/25
+  [3] Engagement:   15/15
+  [4] Structure:    20/20
+  [5] Quality:      15/15
+==================================================
