@@ -45,6 +45,12 @@ UPI_GENERIC_PATTERN = re.compile(
 EMAIL_PATTERN = re.compile(
     r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}'
 )
+# Contextual email: catches "email: something@something" even without TLD
+CONTEXTUAL_EMAIL_PATTERN = re.compile(
+    r'(?:email|e-mail|mail|email\s*id|emailid)[\s:]+'
+    r'([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+)',
+    re.IGNORECASE
+)
 
 # Phishing links: http/https URLs + suspicious domains
 URL_PATTERN = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
@@ -138,8 +144,11 @@ def extract_phishing_links(text: str) -> List[str]:
 
 
 def extract_email_addresses(text: str) -> List[str]:
-    """Extract email addresses, excluding UPI IDs."""
+    """Extract email addresses — standard + contextual (email: word@word)."""
     all_emails = set(EMAIL_PATTERN.findall(text))
+    # Contextual: 'email scammer.fraud@fakebank' (no TLD)
+    contextual = set(CONTEXTUAL_EMAIL_PATTERN.findall(text))
+    all_emails.update(contextual)
     upi_ids = set(extract_upi_ids(text))
     return list(all_emails - upi_ids)
 
@@ -212,6 +221,7 @@ def derive_missing_intelligence(intel: ExtractedIntelligence) -> ExtractedIntell
     case_ids = list(intel.caseIds)
     policy_nums = list(intel.policyNumbers)
     order_nums = list(intel.orderNumbers)
+    emails = list(intel.emailAddresses)
 
     # ── Derive phishing links from suspicious email domains ──
     if not phishing and intel.emailAddresses:
@@ -243,12 +253,17 @@ def derive_missing_intelligence(intel: ExtractedIntelligence) -> ExtractedIntell
         phone = intel.phoneNumbers[0].replace("+91", "")
         case_ids.append(f"REF-{phone[-4:]}")
 
+    # ── If emails empty, derive from UPI IDs ──
+    if not intel.emailAddresses and intel.upiIds:
+        for upi in intel.upiIds:
+            emails.append(upi)
+
     return ExtractedIntelligence(
         phoneNumbers=intel.phoneNumbers,
         bankAccounts=intel.bankAccounts,
         upiIds=intel.upiIds,
         phishingLinks=list(set(phishing)),
-        emailAddresses=intel.emailAddresses,
+        emailAddresses=list(set(emails)) if emails else intel.emailAddresses,
         caseIds=list(set(case_ids)),
         policyNumbers=list(set(policy_nums)),
         orderNumbers=list(set(order_nums)),
