@@ -19,17 +19,25 @@ PHONE_PATTERN = re.compile(
 # Bank account: 9-18 digit standalone numbers
 BANK_ACCOUNT_PATTERN = re.compile(r'\b(\d{9,18})\b')
 
-# UPI: name@bankhandle (specific Indian UPI handles only)
+# UPI: name@bankhandle — comprehensive list + catch-all for common patterns
 UPI_HANDLES = (
     'ybl|paytm|oksbi|okaxis|okicici|okhdfcbank|upi|apl|axl|ibl|sbi|'
     'icici|hdfcbank|axisbank|kotak|indus|federal|barodampay|mahb|'
     'canbk|pnb|unionbank|dbs|rbl|yes|idbi|hsbc|sc|citi|bob|'
     'indianbank|iob|centralbank|allbank|pingpay|gpay|freecharge|'
     'airtel|jio|slice|jupiteraxis|postbank|dlb|kvb|kbl|'
-    'abfspay|ratn|aubank|equitas|bandhan|boi|syndicate|uco|nsdl'
+    'abfspay|ratn|aubank|equitas|bandhan|boi|syndicate|uco|nsdl|'
+    'okmf|okbizaxis|okbizicici|waaxis|wahdfcbank|wasbi|'
+    'fam|apl|barodampay|denabank|pockets|eazypay|'
+    'idfcfirst|yesbankltd|tjsb|jkb|karurvysya'
 )
 UPI_PATTERN = re.compile(
     r'[a-zA-Z0-9._\-]+@(?:' + UPI_HANDLES + r')\b',
+    re.IGNORECASE
+)
+# Catch-all UPI: any word@word that looks like UPI format (backup)
+UPI_GENERIC_PATTERN = re.compile(
+    r'\b([a-zA-Z0-9._\-]+@[a-z]{2,15})\b(?!\.[a-zA-Z])',
     re.IGNORECASE
 )
 
@@ -38,29 +46,40 @@ EMAIL_PATTERN = re.compile(
     r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}'
 )
 
-# Phishing links: http/https URLs
+# Phishing links: http/https URLs + suspicious domains
 URL_PATTERN = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
+# Suspicious TLDs that indicate phishing
+SUSPICIOUS_TLDS = {'.xyz', '.tk', '.ml', '.ga', '.cf', '.gq', '.top', '.buzz', '.click', '.link', '.info', '.work', '.live'}
+# Common legit domains to exclude from phishing
+SAFE_DOMAINS = {'google.com', 'youtube.com', 'facebook.com', 'wikipedia.org', 'github.com', 'microsoft.com', 'apple.com'}
 
 # Case/Reference IDs: REF-2024-123, Case #12345, FIR-123, etc.
 CASE_ID_PATTERN = re.compile(
-    r'(?:case|ref|reference|fir|complaint|ticket|incident)[\s#:_-]*'
-    r'([A-Z0-9][A-Z0-9\-_]{2,20})',
+    r'(?:case|ref|reference|fir|complaint|ticket|incident|badge|verification)[\s#:_-]*'
+    r'([A-Z][A-Z0-9\-_]{2,20})',
     re.IGNORECASE
 )
+# Standalone alphanumeric IDs: ABC-12345, FIR-2024-001
+STANDALONE_ID_PATTERN = re.compile(
+    r'\b([A-Z]{2,5}-[0-9]{2,}(?:-[A-Z0-9]+)*)\b'
+)
 
-# Policy numbers: LIC-987654, Policy: 123456, etc.
+# Policy numbers: LIC-987654, Policy: 123456, POL-xxx, etc.
 POLICY_PATTERN = re.compile(
-    r'(?:policy|insurance|lic|plan)[\s#:_-]*'
+    r'(?:policy|insurance|lic|plan|premium|claim|pol)[\s#:_-]*'
     r'([A-Z0-9][A-Z0-9\-_]{3,20})',
     re.IGNORECASE
 )
 
-# Order numbers: AMZ-12345, Order #123, etc.
+# Order numbers: AMZ-12345, Order #123, ORD-xxx, etc.
 ORDER_PATTERN = re.compile(
-    r'(?:order|transaction|txn|invoice|shipment|tracking)[\s#:_-]*'
+    r'(?:order|transaction|txn|invoice|shipment|tracking|ord|delivery|awb|consignment)[\s#:_-]*'
     r'([A-Z0-9][A-Z0-9\-_]{3,20})',
     re.IGNORECASE
 )
+
+# IFSC codes: 4-letter bank code + 0 + 6 alphanumeric
+IFSC_PATTERN = re.compile(r'\b([A-Z]{4}0[A-Z0-9]{6})\b')
 
 
 # ── Extractors ─────────────────────────────────────────────────────────
@@ -102,13 +121,20 @@ def extract_bank_accounts(text: str) -> List[str]:
 
 
 def extract_upi_ids(text: str) -> List[str]:
-    """Extract UPI IDs (name@bankhandle)."""
-    return list(set(UPI_PATTERN.findall(text)))
+    """Extract UPI IDs (name@bankhandle) — tries specific handles first, then generic."""
+    upi_ids = set(UPI_PATTERN.findall(text))
+    # Also try generic @word pattern (catches new/unknown bank handles)
+    for m in UPI_GENERIC_PATTERN.findall(text):
+        # Exclude if it looks like a real email (has a TLD-like extension)
+        if '.' not in m.split('@')[1]:
+            upi_ids.add(m)
+    return list(upi_ids)
 
 
 def extract_phishing_links(text: str) -> List[str]:
-    """Extract suspicious URLs."""
-    return list(set(URL_PATTERN.findall(text)))
+    """Extract suspicious URLs — all URLs are suspicious in scam context."""
+    urls = set(URL_PATTERN.findall(text))
+    return list(urls)
 
 
 def extract_email_addresses(text: str) -> List[str]:
@@ -119,8 +145,14 @@ def extract_email_addresses(text: str) -> List[str]:
 
 
 def extract_case_ids(text: str) -> List[str]:
-    """Extract case/reference IDs."""
-    return list(set(CASE_ID_PATTERN.findall(text)))
+    """Extract case/reference IDs and standalone alphanumeric IDs."""
+    ids = set(CASE_ID_PATTERN.findall(text))
+    # Also find standalone ABC-12345 style IDs
+    for m in STANDALONE_ID_PATTERN.findall(text):
+        # Skip IFSC codes and known patterns
+        if not re.match(r'^[A-Z]{4}0', m):
+            ids.add(m)
+    return list(ids)
 
 
 def extract_policy_numbers(text: str) -> List[str]:
@@ -133,11 +165,22 @@ def extract_order_numbers(text: str) -> List[str]:
     return list(set(ORDER_PATTERN.findall(text)))
 
 
+def extract_ifsc_codes(text: str) -> List[str]:
+    """Extract IFSC codes."""
+    return list(set(IFSC_PATTERN.findall(text)))
+
+
 def extract_all_intelligence(text: str) -> ExtractedIntelligence:
     """Extract all intelligence from a single message."""
+    # Get IFSC codes and add them to bank accounts for extra intel
+    ifsc_codes = extract_ifsc_codes(text)
+    bank_accts = extract_bank_accounts(text)
+    # IFSC codes are valuable bank intelligence
+    bank_accts = list(set(bank_accts + ifsc_codes))
+
     return ExtractedIntelligence(
         phoneNumbers=extract_phone_numbers(text),
-        bankAccounts=extract_bank_accounts(text),
+        bankAccounts=bank_accts,
         upiIds=extract_upi_ids(text),
         phishingLinks=extract_phishing_links(text),
         emailAddresses=extract_email_addresses(text),
