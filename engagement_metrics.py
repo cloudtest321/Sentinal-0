@@ -16,9 +16,9 @@ class EngagementTracker:
             }
 
     def record_message(self, session_id: str):
-        """Record one message exchange for this session."""
+        """Record one message exchange (incoming + reply = 2 messages)."""
         self._ensure_session(session_id)
-        self.sessions[session_id]['message_count'] += 1
+        self.sessions[session_id]['message_count'] += 2
 
     def get_metrics(self, session_id: str) -> Dict[str, Any]:
         """
