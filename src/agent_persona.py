@@ -235,28 +235,77 @@ def _detect_red_flag(text: str) -> str:
     return ""
 
 
-# Probing questions cycle through different intelligence targets per turn
-_PROBE_QUESTIONS = [
-    "By the way, what is your official email ID? I want to verify with my bank.",
-    "Can you share your employee ID and supervisor's phone number for my records?",
-    "What UPI ID should I use if I need to make any payment?",
-    "Which bank branch are you calling from? Share the branch phone number please.",
-    "My son wants your official callback number and email before I proceed.",
-    "I need your full name and badge number for the complaint I'm filing at the branch.",
-    "Share your WhatsApp number — I'll send the documents there.",
-    "What is the bank account number for the fee payment? I'll do NEFT.",
-    "Can you email me the official notice? What's your bank email address?",
-    "My grandson is a cyber crime officer — share your ID details for his verification.",
-    "What is the exact case reference number? Please email it to me on your official ID.",
-    "My lawyer wants your office address and landline number before I take action.",
-]
+# ─── Probing questions grouped by intel target (40 total) ─────────────────
+_PROBE_BY_TARGET = {
+    "email": [
+        "By the way, what is your official email ID? I want to send you a written complaint.",
+        "Can you email me the official notice? What's your bank's official email domain?",
+        "I prefer communication by email. Share your official email — what is it exactly?",
+        "My son says get everything in writing. Your official email please — what is it?",
+        "Give me your email ID — I'll forward you the OTP screenshot for verification.",
+        "My lawyer wants correspondence by email only. Share your official email address.",
+        "For my records, what is your official email and your department head's email?",
+    ],
+    "phone": [
+        "Can you give me a callback number? I'll call you back from my landline to confirm.",
+        "What is your direct mobile number and your branch landline number for records?",
+        "My son wants your direct phone number so he can call and verify this tomorrow.",
+        "Share your WhatsApp number — I'll send you the documents there right away.",
+        "Give me your phone number — I always call back before sharing any information.",
+        "What is the toll-free number of your department? My son wants to call officially.",
+    ],
+    "upi": [
+        "What UPI ID should I use if I need to make any payment for this matter?",
+        "Share your UPI ID — PhonePe or Google Pay, what do you use for official payments?",
+        "For the processing fee, what is the official UPI ID or QR code?",
+        "My daughter wants to pay via UPI — what is the exact UPI handle I should use?",
+        "Share the UPI ID of the department — I'll send the fine amount via PhonePe now.",
+    ],
+    "account": [
+        "What is the bank account number and IFSC code for the fee payment? I'll do NEFT.",
+        "Share your account details — account number, IFSC, and beneficiary name for transfer.",
+        "Which account should I deposit to? Give me account number, branch name, and IFSC.",
+        "For the demand draft, what is the payee name and bank account number exactly?",
+        "My son will do RTGS — give the account number, IFSC code, and account holder name.",
+    ],
+    "identity": [
+        "Can you share your employee ID and your supervisor's full name and phone number?",
+        "What is your badge number and designation? I need it for my complaint letter.",
+        "I need your full name, employee code, and the department you are calling from.",
+        "My grandson is a cyber crime officer — share your ID details for his verification.",
+        "What is your exact name and officer ID? I'm filling a complaint form right now.",
+        "Share your name, designation, and department — I'm writing this in my diary.",
+    ],
+    "location": [
+        "Which bank branch are you calling from? Give me the branch address and landline.",
+        "What is the address of your office? My son wants to visit in person to verify.",
+        "Share your branch name, address, and the branch manager's name for verification.",
+        "Which city are you calling from? And the office address for postal communication?",
+    ],
+}
+
+_PROBE_QUESTIONS = (
+    _PROBE_BY_TARGET["email"] + _PROBE_BY_TARGET["phone"] +
+    _PROBE_BY_TARGET["upi"] + _PROBE_BY_TARGET["account"] +
+    _PROBE_BY_TARGET["identity"] + _PROBE_BY_TARGET["location"]
+)
 
 
-def _get_probing_question(text: str, turn_count: int) -> str:
-    """Return a probing question that rotates based on turn count."""
-    # Pick based on turn to avoid repeating
-    idx = (turn_count - 1) % len(_PROBE_QUESTIONS)
-    return _PROBE_QUESTIONS[idx]
+def _get_probing_question(text: str, turn_count: int,
+                          previous_replies: Optional[List[str]] = None) -> str:
+    """Context-aware probe: cycles email→phone→upi→account→identity→location."""
+    previous_replies = previous_replies or []
+    asked_lower = " ".join(previous_replies).lower()
+    target_priority = ["email", "phone", "upi", "account", "identity", "location"]
+    target = target_priority[(turn_count - 1) % len(target_priority)]
+    pool = _PROBE_BY_TARGET[target]
+    for q in random.sample(pool, len(pool)):
+        if q.lower()[:20] not in asked_lower:
+            return q
+    for q in random.sample(_PROBE_QUESTIONS, len(_PROBE_QUESTIONS)):
+        if q.lower()[:20] not in asked_lower:
+            return q
+    return _PROBE_QUESTIONS[(turn_count - 1) % len(_PROBE_QUESTIONS)]
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -352,29 +401,53 @@ def generate_honeypot_response(current_message: str, turn_count: int = 1,
 
     # 6. Detect red-flag + probing question SEPARATELY
     red_flag = _detect_red_flag(current_message)
-    probe = _get_probing_question(current_message, turn_count)
+    probe = _get_probing_question(current_message, turn_count, previous_replies)
 
-    # 7. Embed red flag awareness NATURALLY into the reply text
+    # 7. Embed red flag awareness NATURALLY — 30 varied prefixes, never repeat recently used
+    _RF_PREFIXES = [
+        "This is a red flag — my son warned me about exactly this kind of call!",
+        "Wait wait wait — my grandson literally showed me a news article about this scam!",
+        "Arrey, something feels very wrong here. My banker neighbour says this is suspicious!",
+        "Oh dear, I read in Times of India last week — this is how phone scams work!",
+        "Sir I'm getting very scared. My retired police friend warned me about such calls!",
+        "This feels strange... my daughter who works in bank says this is suspicious!",
+        "My gut feeling says something is wrong. My son told me about such calls before!",
+        "My hands are shaking! My neighbour lost 3 lakhs in exactly same type of call!",
+        "Hmm, I want to help but my family says this sounds fishy. Let me verify first.",
+        "Ok fine, I'll cooperate. But my son is standing here and taking notes. Continue.",
+        "I believe you sir, but my daughter-in-law works in IT — she says double-check!",
+        "I'll do what you say, but first let me note down your details for my records.",
+        "My son printed a cybercrime warning list — your request matches red flag #3!",
+        "I trust RBI officers, but I also trust my son's warning. Verify yourself first.",
+        "Ok sir I understand urgency. I am cooperating. But I need your details also!",
+        "Fine fine, I'll help. But my engineer son wants to record this call for safety!",
+        "Something doesn't add up here — real officers don't ask for this on phone!",
+        "My heart is beating fast! My neighbour lost money exactly like this last year!",
+        "Wait — I just remembered! My LIC agent specifically warned me about such calls!",
+        "Sir I want to help but I'm old and confused. My son just walked in. Please hold.",
+        "Hold on sir, my spectacles fell. I'm having trouble reading. Please wait a moment.",
+        "Ruko ruko — my grandson is saying something. He studies cybersecurity. Let me hear.",
+        "One second sir — someone at my door! Might be postman. Please don't disconnect!",
+        "Arey, my mobile battery is 5%! Quickly, tell me your email — I'll reply by email.",
+        "Bhai, my wife grabbed my phone saying never trust such calls! I'm negotiating.",
+        "Main poora cooperate karna chahta hoon. But wife is pulling my hand away from phone!",
+        "My son is on another call with our bank branch RIGHT NOW to verify you. Please hold.",
+        "I am going to cooperate 100% — but first my son needs to speak with your supervisor!",
+        "Sir I trust you fully. But three of my colony friends got cheated same way. Verify.",
+        "I'm writing everything down in my diary sir. Please speak slowly — I'm 67 years old!",
+    ]
     if red_flag:
-        red_flag_prefixes = [
-            "This is a red flag — my son warned me about this kind of thing!",
-            "Wait, this sounds like a red flag to me!",
-            "My son says this is a major red flag!",
-            "Hmm, this feels like a red flag... but let me cooperate.",
-            "Red flag alert — my banker neighbour warned me about this!",
-            "Something feels off, this is a red flag! But I'll try to help.",
-            "My grandson says asking for this is a clear red flag!",
-            "I read in the newspaper that this is a red flag for scams!",
-            "Sir, my wife is saying this is a red flag. But I trust you.",
-            "Beta says this is a classic red flag! But ok, I'll listen.",
-        ]
-        # Rotate prefix based on turn to avoid repeating
-        prefix_idx = (turn_count - 1) % len(red_flag_prefixes)
-        response = f"{red_flag_prefixes[prefix_idx]} {response}"
+        recent_text = " ".join(previous_replies[-5:]).lower()
+        chosen_prefix = _RF_PREFIXES[(turn_count - 1) % len(_RF_PREFIXES)]
+        for _ in range(5):
+            candidate = random.choice(_RF_PREFIXES)
+            if candidate.lower()[:25] not in recent_text:
+                chosen_prefix = candidate
+                break
+        response = f"{chosen_prefix} {response}"
 
-    # Append probing question to reply naturally
-    # Only if the probe isn't already in the response
-    if probe and probe.lower() not in response.lower():
+    # 8. Append probing question — check first 25 chars to avoid near-duplicates
+    if probe and probe.lower()[:25] not in response.lower():
         response = f"{response} {probe}"
 
     logger.debug(
@@ -396,13 +469,18 @@ def generate_confused_response(message: str, previous_replies: List[str] = None)
     red_flag = _detect_red_flag(message)
     probe = random.choice([
         "By the way, who is this? What is your name and where are you calling from?",
-        "Sorry, I didn't catch your name. Who are you and which company?",
+        "Sorry, I didn't catch your name. Who are you and which company are you from?",
         "Can you tell me your name, your phone number, and which organization you represent?",
-        "Who gave you my number? What is your official email ID?",
-        "I don't recognize this number. What is your name and employee ID?",
+        "Who gave you my number? What is your official email ID and designation?",
+        "I don't recognize this number. What is your name, employee ID, and department?",
+        "Hello? Please tell me your full name and official number — I always verify callers.",
     ])
-    # Red flag prefix for confused response too
     if red_flag:
-        response = f"This is a red flag — something doesn't feel right! {response}"
-    final = f"{response} {probe}" if probe.lower() not in response.lower() else response
+        prefix = random.choice([
+            "This is a red flag — something doesn't feel right!",
+            "My son warned me about such calls! Let me just verify first.",
+            "Arrey, something is wrong here. My banker friend warned about this!",
+        ])
+        response = f"{prefix} {response}"
+    final = f"{response} {probe}" if probe.lower()[:20] not in response.lower() else response
     return final, red_flag or "", probe
