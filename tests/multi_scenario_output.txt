@@ -14,11 +14,11 @@ SCENARIO: KYC_FRAUD
   Γ£à bankAccounts: ['23456789012345', 'ACCT-9123456789']
   Γ£à upiIds: ['9123456789@ybl', 'kycupdate@ybl']
   Γ£à phishingLinks: ['http://sbi-kyc-verify.com']
-  Γ£à emailAddresses: ['support@sbi-kyc-verify.com', 'support@sbikyc.in']
-  Γ£à caseIds: ['CASE-2024-6789', 'REF-2024-KYC001']
+  Γ£à emailAddresses: ['support@sbikyc.in', 'support@sbi-kyc-verify.com']
+  Γ£à caseIds: ['REF-2024-KYC001', 'CASE-2024-6789']
   Γ£à policyNumbers: ['POL-6789']
   Γ£à orderNumbers: ['TXN-6789']
-  Reply: PhonePe is open. What's your UPI ID? But I need receipt ΓÇö share your email and phone number for conf...
+  Reply: Ready to pay but need GST invoice. Share your company PAN, GST number, email, and bank account for p...
 
   Γ£à ALL CHECKS PASS
 
@@ -30,7 +30,7 @@ SCENARIO: OTP_THEFT
   confidence: 0.8
   messages: 6
   duration: 45s
-  Γ£à phoneNumbers: ['+917890123456', '7890123456', '8765432109', '+918765432109']
+  Γ£à phoneNumbers: ['+918765432109', '8765432109', '7890123456', '+917890123456']
   Γ£à bankAccounts: ['ACCT-8765432109']
   Γ£à upiIds: ['8765432109@ybl']
   Γ£à phishingLinks: ['http://suspicious-2109.com']
@@ -38,7 +38,7 @@ SCENARIO: OTP_THEFT
   Γ£à caseIds: ['CASE-2024-2109']
   Γ£à policyNumbers: ['POL-2109']
   Γ£à orderNumbers: ['TXN-2109']
-  Reply: Reading OTP... 4... wait, need glasses. Meanwhile ΓÇö what's your full name, employee badge number, an...
+  Reply: OTP is on screen. But I read wrong numbers last time. Share your WhatsApp ΓÇö I'll send screenshot. Wh...
 
   Γ£à ALL CHECKS PASS
 
@@ -58,7 +58,7 @@ SCENARIO: INVESTMENT_SCAM
   Γ£à caseIds: ['ORD-2024-INV789']
   Γ£à policyNumbers: ['POL-001234']
   Γ£à orderNumbers: ['ORD-2024-INV789']
-  Reply: Send me investment agreement on email. What's your email? Also share UPI ID for first installment an...
+  Reply: My son wants to invest too! Send details ΓÇö your full name, company email, bank account number, and I...
 
   Γ£à ALL CHECKS PASS
 
@@ -78,7 +78,7 @@ SCENARIO: LOTTERY_PRIZE
   Γ£à caseIds: ['CASE-2024-0987', 'PRIZE-2024-LUCKY001']
   Γ£à policyNumbers: ['POL-0987']
   Γ£à orderNumbers: ['TXN-0987']
-  Reply: My wife wants proof. Email the winner certificate ΓÇö what's your email? Also share your phone number ...
+  Reply: I want to claim! Send me official letter on email. What's your email ID? And the bank account for ta...
 
   Γ£à ALL CHECKS PASS
 
@@ -98,7 +98,7 @@ SCENARIO: ACCOUNT_BLOCK
   Γ£à caseIds: ['CASE-2024-5678', 'CASE-2024-BLK456']
   Γ£à policyNumbers: ['POL-5678']
   Γ£à orderNumbers: ['TXN-5678']
-  Reply: My CA will verify. Share your officer ID, office address, direct phone number, and official email ΓÇö ...
+  Reply: I'll pay immediately! Share challan number, payment account details ΓÇö account number, IFSC, and your...
 
   Γ£à ALL CHECKS PASS
 
@@ -110,11 +110,11 @@ SCENARIO: PHISHING_LINK
   confidence: 0.8
   messages: 6
   duration: 45s
-  Γ£à phoneNumbers: ['+917777888899', '7777888899']
+  Γ£à phoneNumbers: ['7777888899', '+917777888899']
   Γ£à bankAccounts: ['ACCT-7777888899']
   Γ£à upiIds: ['7777888899@ybl']
   Γ£à phishingLinks: ['http://paytm-secure-update.click/login', 'http://paytm-secure-update.click/verify']
-  Γ£à emailAddresses: ['support@paytm-secure-update.click', 'support@paytmhelp.com']
+  Γ£à emailAddresses: ['support@paytmhelp.com', 'support@paytm-secure-update.click']
   Γ£à caseIds: ['POL-2024-PTM123']
   Γ£à policyNumbers: ['2024-PTM123']
   Γ£à orderNumbers: ['TXN-8899']
@@ -138,7 +138,7 @@ SCENARIO: UPI_PAYMENT
   Γ£à caseIds: ['TXN-2024-CB001', 'ORD-2024-PAY999']
   Γ£à policyNumbers: ['POL-7766']
   Γ£à orderNumbers: ['ORD-2024-PAY999', '2024-CB001']
-  Reply: I want to invest 5 lakhs! Where to send money? Share your company bank account number, IFSC, and you...
+  Reply: How do I start? Share payment details ΓÇö UPI ID and bank account. Also your official email and WhatsA...
 
   Γ£à ALL CHECKS PASS
 
@@ -158,7 +158,7 @@ SCENARIO: MINIMAL_MESSAGE
   Γ¼£ caseIds: []
   Γ¼£ policyNumbers: []
   Γ¼£ orderNumbers: []
-  Reply: My Aadhaar is ready. But where do I send the copy? Give me your official email ID and I'll email the...
+  Reply: Documents are in my almirah. Meanwhile share your full name, employee ID, branch IFSC code, and your...
 
   Γ£à ALL CHECKS PASS
 

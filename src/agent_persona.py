@@ -231,7 +231,7 @@ def _get_probing_question(text: str, turn_count: int) -> str:
 # ─────────────────────────────────────────────────────────────────────────
 
 def generate_honeypot_response(current_message: str, turn_count: int = 1,
-                                scam_type: str = None, **kwargs) -> str:
+                                scam_type: str = None, **kwargs) -> tuple:
     """
     Generate a context-aware honeypot response.
 
@@ -241,7 +241,7 @@ def generate_honeypot_response(current_message: str, turn_count: int = 1,
         scam_type: Detected scam type from scam_detector (optional)
 
     Returns:
-        A phase-appropriate, category-matched response string
+        Tuple of (reply_text, red_flag_description, probing_question)
     """
     # 1. Determine category: use scam_type mapping first, fallback to keyword detection
     category = None
@@ -267,12 +267,12 @@ def generate_honeypot_response(current_message: str, turn_count: int = 1,
 
     response = random.choice(pool)
 
-    # 5. Append red-flag identification + probing question
+    # 5. Detect red-flag + probing question SEPARATELY
     red_flag = _detect_red_flag(current_message)
     probe = _get_probing_question(current_message, turn_count)
-    if red_flag and probe:
-        response = f"{response} [RED FLAG: {red_flag}] {probe}"
-    elif probe:
+
+    # Append probing question to reply naturally (no [RED FLAG] tags)
+    if probe:
         response = f"{response} {probe}"
 
     logger.debug(
@@ -280,14 +280,16 @@ def generate_honeypot_response(current_message: str, turn_count: int = 1,
         f"lang={language}, pool_size={len(pool)}, turn={turn_count}"
     )
 
-    return response
+    return response, red_flag, probe
 
 
-def generate_confused_response(message: str) -> str:
-    """Generate a confused/clarifying response for non-scam messages."""
+def generate_confused_response(message: str) -> tuple:
+    """Generate a confused/clarifying response for non-scam messages.
+    Returns: Tuple of (reply_text, red_flag_description, probing_question)
+    """
     language = _detect_language(message)
     response = random.choice(_get_pool("general", "early", language))
-    # Even for non-scam messages, add a gentle probing question
+    red_flag = _detect_red_flag(message)
     probe = random.choice([
         "By the way, who is this? What is your name and where are you calling from?",
         "Sorry, I didn't catch your name. Who are you and which company?",
@@ -295,5 +297,5 @@ def generate_confused_response(message: str) -> str:
         "Who gave you my number? What is your official email ID?",
         "I don't recognize this number. What is your name and employee ID?",
     ])
-    return f"{response} {probe}"
+    return f"{response} {probe}", red_flag or "", probe
 

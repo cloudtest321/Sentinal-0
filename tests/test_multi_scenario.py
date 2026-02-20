@@ -168,18 +168,22 @@ def grade_scenario(name, scenario, resp):
     # 6. Reply quality
     reply = resp.get("reply", "")
     if not reply:
-        issues.append("  ❌ Empty reply")
-    if scenario["expect_type"] and "[RED FLAG:" not in reply:
-        issues.append("  ⚠️ No [RED FLAG] in reply")
+        issues.append("  X Empty reply")
     if scenario["expect_type"] and "?" not in reply:
-        issues.append("  ⚠️ No probing question in reply")
+        issues.append("  X No probing question in reply")
 
-    # 7. Agent notes quality
+    # 7. Agent notes quality — must contain red flags and probing analysis
     notes = resp.get("agentNotes", "")
     if scenario["expect_type"] and len(notes) < 50:
-        issues.append(f"  ⚠️ Agent notes too short ({len(notes)} chars)")
+        issues.append(f"  X Agent notes too short ({len(notes)} chars)")
     if scenario["expect_type"] and "Scam Type:" not in notes:
-        issues.append("  ⚠️ Agent notes missing 'Scam Type:'")
+        issues.append("  X Agent notes missing 'Scam Type:'")
+    if scenario["expect_type"] and "Red Flags Identified:" not in notes:
+        issues.append("  X Agent notes missing 'Red Flags Identified:' section")
+    # Check the top-level redFlags field
+    red_flags = resp.get("redFlags", [])
+    if scenario["expect_type"] and not red_flags:
+        issues.append("  X No red flags in response 'redFlags' field")
 
     # 8. Duration > 0
     dur = resp.get("engagementDurationSeconds", 0)

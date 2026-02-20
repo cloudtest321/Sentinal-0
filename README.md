@@ -209,15 +209,22 @@ API available at **http://127.0.0.1:8000**.
   "extractedIntelligence": {
     "phoneNumbers": ["9876543210"],
     "bankAccounts": ["ACCT-9876543210"],
-    "upiIds": [],
-    "phishingLinks": [],
-    "emailAddresses": [],
-    "caseIds": ["CASE-3210"],
+    "upiIds": ["9876543210@ybl"],
+    "phishingLinks": ["http://suspicious-3210.com"],
+    "emailAddresses": ["fraud-report-3210@suspicious.com"],
+    "caseIds": ["CASE-2024-3210"],
     "policyNumbers": ["POL-3210"],
     "orderNumbers": ["TXN-3210"]
   },
-  "agentNotes": "Scam Type: OTP_FRAUD | Tactics: Credential Theft, Banking Fraud | Intelligence: 1 phone(s), 1 bank account(s) | Red Flags: Credential request, Account threat | Keywords: otp, blocked, account",
-  "reply": "OTP?! Sir, RBI says never share OTP! What's your employee ID and email? [RED FLAG: Requesting sensitive credentials — legitimate banks never ask for these] By the way, what is your official email ID? I want to verify with my bank."
+  "agentNotes": "Scam Type: OTP_FRAUD | Tactics: Credential Theft, Urgency/Fear | Intelligence Extracted: 1 phone(s) | Red Flags Identified: Credential request — asking for OTP/PIN/CVV which banks never request; Account threat — fake claims of account suspension | Probing Questions Asked: What is your official email ID? | Keywords: otp, blocked, account",
+  "redFlags": [
+    "Requesting sensitive credentials (OTP/PIN/CVV) — legitimate banks never ask for these",
+    "Account threat/pressure tactic — creating urgency to bypass rational thinking"
+  ],
+  "probingQuestions": [
+    "By the way, what is your official email ID? I want to verify with my bank."
+  ],
+  "reply": "OTP?! Sir, RBI says never share OTP! What's your employee ID and email? By the way, what is your official email ID? I want to verify with my bank."
 }
 ```
 

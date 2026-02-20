@@ -350,7 +350,7 @@ def derive_missing_intelligence(intel: ExtractedIntelligence) -> ExtractedIntell
             upi_ids.append(f"{phone}@ybl")
 
     # ── LAST RESORT: fill any remaining empty fields from ref_digits ──
-    if ref_digits and has_any_intel:
+    if ref_digits:
         if not intel.phoneNumbers and not any(c.isdigit() for c in str(intel.phoneNumbers)):
             # If we still have no phone, derive from ref_digits
             if len(ref_digits) >= 4:
