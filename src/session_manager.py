@@ -21,6 +21,7 @@ class SessionData:
         self.intelligence = ExtractedIntelligence()
         self.agent_notes: list = []
         self.callback_sent = False
+        self.accumulated_keywords: list = []  # persist keywords across ALL turns
 
         # Timing
         self.created_at = datetime.now()

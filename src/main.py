@@ -272,26 +272,33 @@ async def analyze_message(
         session.update_duration_from_history(raw_history)
 
         # ── Scam Detection ─────────────────────────────────────────────
+        # Build history dicts from raw data (most tolerant)
+        conversation_history = []
+        for item in raw_history:
+            if isinstance(item, dict):
+                conversation_history.append({
+                    "sender": item.get("sender", item.get("role", "")),
+                    "text": item.get("text", item.get("content", "")),
+                    "timestamp": item.get("timestamp", 0),
+                })
+
+        # ALWAYS run detection to extract keywords (even if scam already confirmed)
+        scam_detected_now, keywords, scam_score = detect_scam(message_text, conversation_history)
+
         if session.scam_detected:
             scam_detected = True
-            keywords = []
             scam_type = session.scam_type
+            # Still accumulate new keywords from this turn
+            if keywords:
+                for kw in keywords:
+                    if kw not in session.accumulated_keywords:
+                        session.accumulated_keywords.append(kw)
         else:
-            # Build history dicts from raw data (most tolerant)
-            conversation_history = []
-            for item in raw_history:
-                if isinstance(item, dict):
-                    conversation_history.append({
-                        "sender": item.get("sender", item.get("role", "")),
-                        "text": item.get("text", item.get("content", "")),
-                        "timestamp": item.get("timestamp", 0),
-                    })
-            scam_detected, keywords, scam_score = detect_scam(message_text, conversation_history)
+            scam_detected = scam_detected_now
             scam_type = get_scam_type(keywords) if scam_detected else None
 
-            # Calculate REAL confidence from scam_score
-            # Score 1=0.53, 5=0.65, 10=0.80, 15=0.95, 16+=0.99
             if scam_detected:
+                session.accumulated_keywords = list(keywords)
                 confidence = min(0.50 + scam_score * 0.03, 0.99)
                 confidence = round(confidence, 2)
                 session.confidence_level = max(session.confidence_level, confidence)
@@ -305,24 +312,28 @@ async def analyze_message(
                     scam_type = history_type
 
         # ── Intelligence Extraction (current message + full history) ───
-        current_intel = extract_all_intelligence(message_text)
+        try:
+            current_intel = extract_all_intelligence(message_text)
 
-        # Extract from ALL raw history items (most robust — works even if Pydantic drops items)
-        for item in raw_history:
-            if isinstance(item, dict):
-                item_text = item.get("text", item.get("content", ""))
-                if item_text:
-                    item_intel = extract_all_intelligence(item_text)
-                    current_intel = ExtractedIntelligence(
-                        phoneNumbers=list(set(current_intel.phoneNumbers + item_intel.phoneNumbers)),
-                        bankAccounts=list(set(current_intel.bankAccounts + item_intel.bankAccounts)),
-                        upiIds=list(set(current_intel.upiIds + item_intel.upiIds)),
-                        phishingLinks=list(set(current_intel.phishingLinks + item_intel.phishingLinks)),
-                        emailAddresses=list(set(current_intel.emailAddresses + item_intel.emailAddresses)),
-                        caseIds=list(set(current_intel.caseIds + item_intel.caseIds)),
-                        policyNumbers=list(set(current_intel.policyNumbers + item_intel.policyNumbers)),
-                        orderNumbers=list(set(current_intel.orderNumbers + item_intel.orderNumbers)),
-                    )
+            # Extract from ALL raw history items
+            for item in raw_history:
+                if isinstance(item, dict):
+                    item_text = item.get("text", item.get("content", ""))
+                    if item_text:
+                        item_intel = extract_all_intelligence(item_text)
+                        current_intel = ExtractedIntelligence(
+                            phoneNumbers=list(set(current_intel.phoneNumbers + item_intel.phoneNumbers)),
+                            bankAccounts=list(set(current_intel.bankAccounts + item_intel.bankAccounts)),
+                            upiIds=list(set(current_intel.upiIds + item_intel.upiIds)),
+                            phishingLinks=list(set(current_intel.phishingLinks + item_intel.phishingLinks)),
+                            emailAddresses=list(set(current_intel.emailAddresses + item_intel.emailAddresses)),
+                            caseIds=list(set(current_intel.caseIds + item_intel.caseIds)),
+                            policyNumbers=list(set(current_intel.policyNumbers + item_intel.policyNumbers)),
+                            orderNumbers=list(set(current_intel.orderNumbers + item_intel.orderNumbers)),
+                        )
+        except Exception as e:
+            logger.error(f"[{session_id}] Intelligence extraction error: {e}")
+            current_intel = ExtractedIntelligence()
 
         # ── Update session state ───────────────────────────────────────
         session.scam_detected = scam_detected or session.scam_detected
@@ -331,24 +342,34 @@ async def analyze_message(
         session.record_turn()  # +1 turn = +2 messages
 
         # ── Derive missing intelligence from existing data ────────────
-        session.intelligence = derive_missing_intelligence(session.intelligence)
+        try:
+            session.intelligence = derive_missing_intelligence(session.intelligence)
+        except Exception as e:
+            logger.error(f"[{session_id}] Intelligence derivation error: {e}")
 
         if keywords:
             session.add_note(f"Keywords: {', '.join(keywords[:5])}")
 
+        # Use accumulated keywords for rich agent notes
+        all_keywords = session.accumulated_keywords if session.accumulated_keywords else keywords
+
         # ── Response Generation ────────────────────────────────────────
-        if scam_detected:
-            reply = generate_honeypot_response(
-                current_message=message_text,
-                turn_count=session._turn_count,
-                scam_type=scam_type or session.scam_type,
-            )
-        else:
-            reply = generate_confused_response(message_text)
+        try:
+            if scam_detected:
+                reply = generate_honeypot_response(
+                    current_message=message_text,
+                    turn_count=session._turn_count,
+                    scam_type=scam_type or session.scam_type,
+                )
+            else:
+                reply = generate_confused_response(message_text)
+        except Exception as e:
+            logger.error(f"[{session_id}] Response generation error: {e}")
+            reply = "Sorry ji, network problem. Can you repeat what you said?"
 
         # ── Build response ─────────────────────────────────────────────
         response = _build_response(
-            session, scam_detected, scam_type or session.scam_type, keywords, reply
+            session, scam_detected, scam_type or session.scam_type, all_keywords, reply
         )
 
         logger.info(

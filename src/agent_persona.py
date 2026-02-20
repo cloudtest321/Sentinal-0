@@ -167,6 +167,58 @@ def _get_phase(turn_count: int) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────
+# Red-flag detection & probing question generation
+# ─────────────────────────────────────────────────────────────────────────
+
+def _detect_red_flag(text: str) -> str:
+    """Identify the most relevant red flag in the scammer's message."""
+    t = text.lower()
+    if any(w in t for w in ["otp", "pin", "cvv", "password"]):
+        return "Requesting sensitive credentials (OTP/PIN/CVV) — legitimate banks never ask for these"
+    if any(w in t for w in ["blocked", "suspended", "deactivated", "frozen"]):
+        return "Account threat/pressure tactic — creating urgency to bypass rational thinking"
+    if any(w in t for w in ["urgent", "immediately", "right now", "within 2 hours"]):
+        return "Artificial time pressure — scammers create urgency to prevent verification"
+    if any(w in t for w in ["arrest", "police", "legal", "fir", "warrant"]):
+        return "Legal intimidation — fake authority threats to coerce compliance"
+    if any(w in t for w in ["won", "winner", "prize", "lottery", "reward"]):
+        return "Unsolicited prize — classic advance-fee fraud pattern"
+    if any(w in t for w in ["invest", "guaranteed", "returns", "profit", "doubl"]):
+        return "Guaranteed returns promise — no legitimate investment guarantees profits"
+    if any(w in t for w in ["http", "www", "click", "link"]):
+        return "Suspicious URL shared — potential phishing link to steal credentials"
+    if any(w in t for w in ["kyc", "verify", "update your"]):
+        return "KYC verification request via phone/message — banks do KYC in-branch only"
+    if any(w in t for w in ["transfer", "send money", "pay", "fee", "charge"]):
+        return "Requesting money transfer — legitimate services don't ask for upfront payments this way"
+    if any(w in t for w in ["whatsapp", "telegram", "personal number"]):
+        return "Moving to personal messaging — attempting to evade official communication channels"
+    return ""
+
+
+# Probing questions cycle through different intelligence targets per turn
+_PROBE_QUESTIONS = [
+    "By the way, what is your official email ID? I want to verify with my bank.",
+    "Can you share your employee ID and supervisor's phone number for my records?",
+    "What UPI ID should I use if I need to make any payment?",
+    "Which bank branch are you calling from? Share the branch phone number please.",
+    "My son wants your official callback number and email before I proceed.",
+    "I need your full name and badge number for the complaint I'm filing at the branch.",
+    "Share your WhatsApp number — I'll send the documents there.",
+    "What is the bank account number for the fee payment? I'll do NEFT.",
+    "Can you email me the official notice? What's your bank email address?",
+    "My grandson is a cyber crime officer — share your ID details for his verification.",
+]
+
+
+def _get_probing_question(text: str, turn_count: int) -> str:
+    """Return a probing question that rotates based on turn count."""
+    # Pick based on turn to avoid repeating
+    idx = (turn_count - 1) % len(_PROBE_QUESTIONS)
+    return _PROBE_QUESTIONS[idx]
+
+
+# ─────────────────────────────────────────────────────────────────────────
 # Public API
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -206,6 +258,14 @@ def generate_honeypot_response(current_message: str, turn_count: int = 1,
         pool = _get_pool("general", "middle", language)
 
     response = random.choice(pool)
+
+    # 5. Append red-flag identification + probing question
+    red_flag = _detect_red_flag(current_message)
+    probe = _get_probing_question(current_message, turn_count)
+    if red_flag and probe:
+        response = f"{response} [RED FLAG: {red_flag}] {probe}"
+    elif probe:
+        response = f"{response} {probe}"
 
     logger.debug(
         f"Response selection: category={category}, phase={phase}, "
